@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recall</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+  :root {
+    --ink:#1a1a2e; --ink-soft:#4a4a6a; --ink-ghost:#9090b0;
+    --paper:#f7f6f2; --card:#fff;
+    --accent:#5b4fcf; --accent-light:#ede9ff;
+    --green:#2d9e6b; --green-light:#d6f4e8;
+    --yellow:#d97706; --yellow-light:#fef3c7;
+    --red:#dc2626; --red-light:#fee2e2;
+    --blue:#1d4ed8; --blue-light:#dbeafe;
+    --purple:#7c3aed; --purple-light:#ede9ff;
+    --border:#e0dfd8;
+    --shadow:0 2px 12px rgba(26,26,46,.08);
+    --shadow-lg:0 8px 40px rgba(26,26,46,.14);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'DM Sans',sans-serif;background:var(--paper);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;}
+
+  nav{display:flex;align-items:center;justify-content:space-between;padding:14px 26px;border-bottom:1px solid var(--border);background:var(--card);position:relative;}
+  .logo{font-family:'DM Serif Display',serif;font-size:1.25rem;color:var(--accent);letter-spacing:-.02em;}
+  .logo em{font-style:italic;color:var(--ink);}
+  .nav-right{display:flex;align-items:center;gap:14px;}
+  .nav-date{font-size:.76rem;color:var(--ink-ghost);font-family:'DM Mono',monospace;}
+  .nav-btn{font-size:.8rem;color:var(--accent);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;padding:4px 8px;border-radius:6px;transition:background .1s;}
+  .nav-btn:hover{background:var(--accent-light);}
+
+  .screen{display:none;flex:1;}
+  .screen.active{display:flex;flex-direction:column;}
+
+  /* ALL DECKS */
+  #decks{padding:36px 26px;max-width:880px;margin:0 auto;width:100%;}
+  .decks-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;}
+  .decks-header h2{font-family:'DM Serif Display',serif;font-size:1.5rem;}
+  .btn-new{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-family:'DM Sans',sans-serif;font-size:.83rem;font-weight:600;cursor:pointer;transition:background .15s;}
+  .btn-new:hover{background:#4a3fb5;}
+
+  .review-all-bar{background:var(--card);border:1.5px solid var(--accent-light);border-radius:12px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .ra-label{font-size:.88rem;color:var(--ink-soft);}
+  .ra-count{font-family:'DM Serif Display',serif;font-size:1.5rem;color:var(--accent);margin-right:6px;}
+  .btn-review-all{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;transition:background .15s;white-space:nowrap;}
+  .btn-review-all:hover{background:#4a3fb5;}
+
+  .deck-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;}
+  .deck-tile{background:var(--card);border:1.5px solid var(--border);border-radius:13px;padding:20px;cursor:pointer;transition:border-color .15s,box-shadow .15s;position:relative;}
+  .deck-tile:hover{border-color:var(--accent);box-shadow:var(--shadow);}
+  .deck-tile.archived{opacity:.55;}
+  .tile-name{font-weight:600;font-size:.95rem;margin-bottom:4px;padding-right:20px;}
+  .tile-total{font-size:.76rem;color:var(--ink-ghost);margin-bottom:12px;}
+  .tile-piles{display:flex;flex-wrap:wrap;gap:5px;}
+  .pile-chip{font-size:.7rem;font-weight:600;padding:3px 8px;border-radius:99px;}
+  .pc-new{background:var(--purple-light);color:var(--purple);}
+  .pc-hard{background:var(--red-light);color:var(--red);}
+  .pc-good{background:var(--yellow-light);color:var(--yellow);}
+  .pc-easy{background:var(--green-light);color:var(--green);}
+  .pc-done{background:#f0f0f0;color:var(--ink-ghost);}
+  .pc-archived{background:#f0f0f0;color:var(--ink-ghost);}
+  .tile-menu{position:absolute;top:10px;right:10px;background:none;border:none;color:var(--ink-ghost);cursor:pointer;font-size:1rem;padding:3px 6px;border-radius:4px;opacity:0;transition:opacity .1s;}
+  .deck-tile:hover .tile-menu{opacity:1;}
+  .tile-menu:hover{color:var(--ink);}
+  .empty-state{text-align:center;padding:60px 20px;color:var(--ink-ghost);font-size:.88rem;line-height:1.9;}
+
+  /* SETUP */
+  #setup{align-items:center;justify-content:flex-start;overflow-y:auto;padding:36px 20px;}
+  .setup-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:36px;max-width:520px;width:100%;box-shadow:var(--shadow);}
+  .setup-title{font-family:'DM Serif Display',serif;font-size:1.4rem;margin-bottom:20px;}
+  .field-label{display:block;font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-ghost);margin-bottom:6px;}
+  .text-input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.88rem;color:var(--ink);background:var(--paper);outline:none;transition:border-color .15s;margin-bottom:16px;}
+  .text-input:focus{border-color:var(--accent);}
+  .text-input::placeholder{color:var(--ink-ghost);}
+  .tab-row{display:flex;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
+  .tab-btn{flex:1;padding:9px;border:none;font-family:'DM Sans',sans-serif;font-size:.82rem;font-weight:600;cursor:pointer;transition:background .12s,color .12s;}
+  .tab-btn.active{background:var(--accent);color:#fff;}
+  .tab-btn:not(.active){background:var(--paper);color:var(--ink-soft);}
+  .tab-panel{display:none;} .tab-panel.active{display:block;}
+
+  .col-labels{display:flex;gap:8px;margin-bottom:4px;padding-right:34px;}
+  .col-label{flex:1;font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-ghost);}
+  .enter-hint{font-size:.7rem;color:var(--ink-ghost);margin-bottom:9px;}
+  .entry-rows-wrap{max-height:280px;overflow-y:auto;margin-bottom:10px;}
+  .entry-row{display:flex;gap:7px;align-items:center;margin-bottom:7px;animation:fadeIn .1s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+  .entry-field{flex:1;padding:9px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:'DM Sans',sans-serif;font-size:.86rem;color:var(--ink);background:var(--paper);outline:none;transition:border-color .15s;}
+  .entry-field:focus{border-color:var(--accent);}
+  .entry-field::placeholder{color:var(--ink-ghost);}
+  .entry-field.def{border-style:dashed;}
+  .rm-btn{width:24px;height:24px;border:none;background:none;color:var(--ink-ghost);cursor:pointer;font-size:.95rem;border-radius:4px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:color .1s,background .1s;}
+  .rm-btn:hover{color:var(--red);background:var(--red-light);}
+  .add-row-btn{display:flex;align-items:center;gap:5px;background:none;border:1.5px dashed var(--border);border-radius:7px;padding:7px 11px;font-family:'DM Sans',sans-serif;font-size:.8rem;color:var(--ink-ghost);cursor:pointer;width:100%;margin-bottom:16px;transition:border-color .15s,color .15s;}
+  .add-row-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .paste-area{width:100%;min-height:130px;padding:11px 13px;border:1.5px solid var(--border);border-radius:8px;font-family:'DM Mono',monospace;font-size:.78rem;color:var(--ink);background:var(--paper);outline:none;resize:vertical;transition:border-color .15s;margin-bottom:10px;}
+  .paste-area:focus{border-color:var(--accent);}
+  .paste-hint{font-size:.73rem;color:var(--ink-soft);margin-bottom:10px;line-height:1.6;}
+  .preview-list{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;}
+  .preview-row{display:flex;align-items:baseline;gap:7px;font-size:.78rem;}
+  .preview-term{font-family:'DM Mono',monospace;color:var(--accent);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px;}
+  .preview-arrow{color:var(--ink-ghost);flex-shrink:0;}
+  .preview-def{color:var(--ink-soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .preview-more{font-size:.72rem;color:var(--ink-ghost);margin-top:2px;}
+  .btn-primary{display:flex;align-items:center;justify-content:center;width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;transition:background .15s,transform .1s;}
+  .btn-primary:hover{background:#4a3fb5;transform:translateY(-1px);}
+  .err-msg{font-size:.8rem;margin-top:9px;padding:8px 12px;background:var(--red-light);color:var(--red);border-radius:7px;display:none;}
+  .err-msg.show{display:block;}
+
+  /* SINGLE DECK */
+  #dashboard{padding:36px 26px;max-width:760px;margin:0 auto;width:100%;}
+  .dash-header{margin-bottom:22px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+  .dash-header-left h2{font-family:'DM Serif Display',serif;font-size:1.6rem;}
+  .dash-header-left p{color:var(--ink-soft);font-size:.85rem;margin-top:3px;}
+  .archived-badge{font-size:.72rem;font-weight:600;color:var(--ink-ghost);background:#f0f0f0;border-radius:99px;padding:3px 10px;margin-top:6px;display:inline-block;}
+  .btn-archive{font-size:.76rem;color:var(--ink-ghost);background:none;border:1.5px solid var(--border);border-radius:7px;padding:6px 12px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;white-space:nowrap;transition:border-color .1s,color .1s;margin-top:4px;}
+  .btn-archive:hover{border-color:var(--ink-soft);color:var(--ink);}
+
+  /* Pile grid */
+  .pile-section{margin-bottom:22px;}
+  .pile-section-label{font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-ghost);margin-bottom:8px;}
+  .pile-hint{font-size:.71rem;color:var(--ink-ghost);margin-bottom:14px;}
+  .pile-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .pile-card{background:var(--card);border:1.5px solid var(--border);border-radius:11px;padding:16px 10px;text-align:center;cursor:pointer;transition:border-color .15s,box-shadow .15s;}
+  .pile-card:hover{border-color:var(--accent);box-shadow:var(--shadow);}
+  .pile-card.pile-new .pname{color:var(--purple);}
+  .pile-card.pile-new .pnum{color:var(--purple);}
+  .pile-card.pile-hard .pname{color:var(--red);}
+  .pile-card.pile-hard .pnum{color:var(--red);}
+  .pile-card.pile-good .pname{color:var(--yellow);}
+  .pile-card.pile-good .pnum{color:var(--yellow);}
+  .pile-card.pile-easy .pname{color:var(--green);}
+  .pile-card.pile-easy .pnum{color:var(--green);}
+  .pname{font-size:.7rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;}
+  .pnum{font-family:'DM Serif Display',serif;font-size:1.8rem;line-height:1;margin-bottom:2px;}
+  .psub{font-size:.67rem;color:var(--ink-ghost);}
+
+  .dash-actions{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:8px;}
+  .btn-start{background:var(--accent);color:#fff;padding:12px 26px;font-size:.9rem;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:background .15s;}
+  .btn-start:hover{background:#4a3fb5;}
+  .btn-start:disabled{background:var(--ink-ghost);cursor:not-allowed;}
+  .btn-sec{background:var(--card);color:var(--ink);border:1.5px solid var(--border);padding:10px 18px;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.84rem;font-weight:600;cursor:pointer;transition:border-color .15s,color .15s;}
+  .btn-sec:hover{border-color:var(--accent);color:var(--accent);}
+  .queue-empty{color:var(--green);font-size:.86rem;padding:11px 15px;background:var(--green-light);border-radius:8px;font-weight:500;margin-top:4px;}
+  .upcoming-list{margin-top:22px;background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .upcoming-list h3{font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-ghost);padding:12px 17px 8px;border-bottom:1px solid var(--border);}
+  .upcoming-item{display:flex;justify-content:space-between;align-items:center;padding:9px 17px;border-bottom:1px solid var(--border);font-size:.84rem;}
+  .upcoming-item:last-child{border-bottom:none;}
+  .uword{font-weight:500;}
+  .uwhen{color:var(--ink-ghost);font-family:'DM Mono',monospace;font-size:.74rem;}
+
+  /* REVIEW */
+  #review{align-items:center;justify-content:center;padding:28px 18px;flex:1;}
+  .review-wrap{width:100%;max-width:580px;display:flex;flex-direction:column;align-items:center;margin:auto;}
+  .review-topbar{width:100%;display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+  .progress-bar-wrap{flex:1;height:3px;background:var(--border);border-radius:99px;overflow:hidden;}
+  .progress-bar-fill{height:100%;background:var(--accent);border-radius:99px;transition:width .4s ease;}
+  .shuffle-btn{font-size:.73rem;color:var(--ink-ghost);background:none;border:1.5px solid var(--border);border-radius:6px;padding:4px 9px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:500;white-space:nowrap;transition:border-color .1s,color .1s;}
+  .shuffle-btn:hover,.shuffle-btn.on{border-color:var(--accent);color:var(--accent);}
+  .card-count{font-family:'DM Mono',monospace;font-size:.76rem;color:var(--ink-ghost);margin-bottom:12px;align-self:flex-end;}
+  .review-context{font-size:.72rem;color:var(--ink-ghost);margin-bottom:8px;align-self:flex-start;}
+
+  .flashcard-scene{width:100%;perspective:1200px;margin-bottom:22px;}
+  .flashcard{width:100%;min-height:230px;position:relative;transform-style:preserve-3d;transition:transform .5s cubic-bezier(.4,0,.2,1);cursor:pointer;}
+  .flashcard.flipped{transform:rotateY(180deg);}
+  .card-face{position:absolute;inset:0;min-height:230px;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card);border:1.5px solid var(--border);border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;box-shadow:var(--shadow-lg);}
+  .card-tag{font-size:.66rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-ghost);margin-bottom:14px;}
+  .card-word{font-family:'DM Serif Display',serif;font-size:1.9rem;text-align:center;line-height:1.2;}
+  .tap-hint{margin-top:16px;font-size:.72rem;color:var(--ink-ghost);}
+  .card-back{transform:rotateY(180deg);background:var(--accent-light);border-color:#d0c9ff;}
+  .card-def{font-size:.96rem;text-align:center;line-height:1.7;}
+  .card-word-small{font-family:'DM Mono',monospace;font-size:.75rem;color:var(--accent);font-weight:500;margin-bottom:12px;}
+
+  .rating-area{width:100%;display:none;flex-direction:column;gap:8px;}
+  .rating-area.show{display:flex;}
+  .rating-intro{font-size:.73rem;color:var(--ink-soft);text-align:center;line-height:1.5;}
+  .rating-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+  .rating-btn{padding:11px 5px;border-radius:9px;border:1.5px solid transparent;font-family:'DM Sans',sans-serif;font-size:.78rem;font-weight:600;cursor:pointer;transition:all .13s;display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .rating-btn .sub{font-size:.62rem;font-weight:400;opacity:.8;text-align:center;line-height:1.3;}
+  .r-again{background:#f3f0ff;color:var(--purple);border-color:#c4b5fd;} .r-again:hover{background:var(--purple);color:#fff;}
+  .r-hard{background:var(--red-light);color:var(--red);border-color:#fca5a5;} .r-hard:hover{background:var(--red);color:#fff;}
+  .r-good{background:var(--yellow-light);color:var(--yellow);border-color:#fcd34d;} .r-good:hover{background:var(--yellow);color:#fff;}
+  .r-easy{background:var(--green-light);color:var(--green);border-color:#6ee7b7;} .r-easy:hover{background:var(--green);color:#fff;}
+
+  /* DONE */
+  #done{align-items:center;justify-content:center;padding:36px 18px;}
+  .done-card{background:var(--card);border:1px solid var(--border);border-radius:17px;padding:44px 36px;max-width:420px;width:100%;text-align:center;box-shadow:var(--shadow);}
+  .done-icon{font-size:2.4rem;margin-bottom:14px;}
+  .done-card h2{font-family:'DM Serif Display',serif;font-size:1.6rem;margin-bottom:7px;}
+  .done-card p{color:var(--ink-soft);font-size:.86rem;line-height:1.6;margin-bottom:18px;}
+  .next-info{font-family:'DM Mono',monospace;font-size:.78rem;color:var(--accent);background:var(--accent-light);padding:8px 13px;border-radius:6px;margin-bottom:20px;display:inline-block;}
+
+  /* MODAL */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px;}
+  .modal-box{background:var(--card);border-radius:14px;padding:28px;max-width:340px;width:100%;box-shadow:var(--shadow-lg);}
+  .modal-box h3{font-family:'DM Serif Display',serif;font-size:1.2rem;margin-bottom:8px;}
+  .modal-box p{font-size:.84rem;color:var(--ink-soft);line-height:1.5;margin-bottom:20px;}
+  .modal-btns{display:flex;gap:9px;justify-content:flex-end;}
+  .modal-cancel{background:none;border:1.5px solid var(--border);border-radius:7px;padding:8px 16px;font-family:'DM Sans',sans-serif;font-size:.83rem;font-weight:600;cursor:pointer;color:var(--ink);}
+  .modal-cancel:hover{border-color:var(--ink-soft);}
+  .modal-confirm-del{background:var(--red);color:#fff;border:none;border-radius:7px;padding:8px 16px;font-family:'DM Sans',sans-serif;font-size:.83rem;font-weight:600;cursor:pointer;}
+  .modal-confirm-del:hover{background:#b91c1c;}
+  .modal-confirm-ok{background:var(--accent);color:#fff;border:none;border-radius:7px;padding:8px 16px;font-family:'DM Sans',sans-serif;font-size:.83rem;font-weight:600;cursor:pointer;}
+  .modal-confirm-ok:hover{background:#4a3fb5;}
+
+  .pile-card-lists{margin-top:22px;}
+  @media(max-width:600px){
+    nav{padding:11px 16px;}
+    .setup-card{padding:22px 16px;}
+    #dashboard,#decks{padding:22px 16px;}
+    .pile-grid{grid-template-columns:repeat(2,1fr);}
+    .rating-btns{grid-template-columns:repeat(2,1fr);}
+    .card-word{font-size:1.5rem;}
+    .deck-grid{grid-template-columns:1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">Re<em>call</em></span>
+  <div class="nav-right">
+    <button class="nav-btn" onclick="showHelp()" style="color:var(--ink-ghost);">? How it works</button>
+    <span class="nav-date" id="navDate"></span>
+    <button class="nav-btn" id="navBack" style="display:none" onclick="goBack()">← All decks</button>
+  </div>
+</nav>
+
+<div class="modal-overlay" id="modalOverlay" style="display:none">
+  <div class="modal-box">
+    <h3 id="modalTitle"></h3>
+    <p id="modalMsg"></p>
+    <div class="modal-btns" id="modalBtns"></div>
+  </div>
+</div>
+
+<!-- ALL DECKS -->
+<div class="screen active" id="decks">
+  <div style="padding:36px 26px;max-width:880px;margin:0 auto;width:100%">
+    <div class="decks-header">
+      <h2>Your decks</h2>
+      <button class="btn-new" onclick="openNewDeck()">+ New deck</button>
+    </div>
+    <div class="review-all-bar" id="reviewAllBar" style="display:none">
+      <div><span class="ra-count" id="raCount">0</span> <span class="ra-label">cards due across all decks</span></div>
+      <button class="btn-review-all" onclick="startReviewAll()">Review all due →</button>
+    </div>
+    <div class="deck-grid" id="deckGrid"></div>
+    <div class="empty-state" id="emptyState" style="display:none">
+      No decks yet.<br><br>
+      <button class="btn-new" onclick="openNewDeck()">Create your first deck</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP -->
+<div class="screen" id="setup">
+  <div style="flex:1;display:flex;align-items:flex-start;justify-content:center;padding:36px 20px;overflow-y:auto">
+    <div class="setup-card">
+      <div class="setup-title" id="setupTitle">New deck</div>
+      <label class="field-label">Deck name</label>
+      <input class="text-input" id="deckName" placeholder="e.g. History Ch. 4, Bio Terms…" />
+      <div class="tab-row">
+        <button class="tab-btn active" id="tabManual" onclick="switchTab('manual')">Type cards</button>
+        <button class="tab-btn" id="tabPaste" onclick="switchTab('paste')">Paste from sheet</button>
+      </div>
+      <div class="tab-panel active" id="panelManual">
+        <div class="col-labels">
+          <span class="col-label">Term</span>
+          <span class="col-label">Definition</span>
+        </div>
+        <div class="enter-hint">↵ moves to next field · adds new card after definition</div>
+        <div class="entry-rows-wrap"><div id="entryRows"></div></div>
+        <button class="add-row-btn" onclick="addRow()">+ Add card</button>
+      </div>
+      <div class="tab-panel" id="panelPaste">
+        <p class="paste-hint">In Google Sheets: column A = term, column B = definition.<br>Select both columns → Copy → Paste here.</p>
+        <textarea class="paste-area" id="pasteArea" placeholder="Paste here…" oninput="onPasteInput()"></textarea>
+        <div class="preview-list" id="previewList"></div>
+      </div>
+      <button class="btn-primary" onclick="saveDeck()">Save deck →</button>
+      <div class="err-msg" id="errMsg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SINGLE DECK -->
+<div class="screen" id="dashboard">
+  <div style="padding:36px 26px;max-width:760px;margin:0 auto;width:100%">
+    <div class="dash-header">
+      <div class="dash-header-left">
+        <h2 id="deckTitle"></h2>
+        <p id="deckSubtitle"></p>
+        <span class="archived-badge" id="archivedBadge" style="display:none">Archived</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+        <button class="btn-archive" id="archiveBtn" onclick="toggleArchive()"></button>
+        <button class="btn-sec" style="font-size:.76rem;padding:6px 12px;" onclick="openDeleteDeck()">Delete deck</button>
+      </div>
+    </div>
+
+    <div class="pile-section">
+      <div class="pile-section-label">Piles</div>
+      <div class="pile-hint">Click a pile to review all its cards (due or not)</div>
+      <div class="pile-grid">
+        <div class="pile-card pile-new" onclick="startReviewPile('new')">
+          <div class="pname">New</div>
+          <div class="pnum" id="pNewNum">0</div>
+          <div class="psub" id="pNewSub">not started</div>
+        </div>
+        <div class="pile-card pile-hard" onclick="startReviewPile('hard')">
+          <div class="pname">Hard</div>
+          <div class="pnum" id="pHardNum">0</div>
+          <div class="psub" id="pHardSub">every 1 day</div>
+        </div>
+        <div class="pile-card pile-good" onclick="startReviewPile('good')">
+          <div class="pname">Good</div>
+          <div class="pnum" id="pGoodNum">0</div>
+          <div class="psub" id="pGoodSub">every 4 days</div>
+        </div>
+        <div class="pile-card pile-easy" onclick="startReviewPile('easy')">
+          <div class="pname">Easy</div>
+          <div class="pnum" id="pEasyNum">0</div>
+          <div class="psub" id="pEasySub">every 10 days</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dash-actions">
+      <button class="btn-start" id="startBtn" onclick="startReviewDue()">Review due cards</button>
+      <button class="btn-sec" onclick="editDeck(currentDeckId)">Edit cards</button>
+    </div>
+    <div id="queueEmpty" class="queue-empty" style="display:none">✓ Nothing due. Come back tomorrow.</div>
+
+    <div class="pile-card-lists" id="pileCardLists"></div>
+  </div>
+</div>
+
+<!-- REVIEW -->
+<div class="screen" id="review">
+  <div class="review-wrap">
+    <div class="review-topbar">
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progressFill"></div></div>
+      <button class="shuffle-btn" id="shuffleBtn" onclick="toggleShuffle()">⇄ Shuffle</button>
+    </div>
+    <div class="review-context" id="reviewContext"></div>
+    <div class="card-count" id="cardCount"></div>
+    <div class="flashcard-scene">
+      <div class="flashcard" id="flashcard" onclick="flipCard()">
+        <div class="card-face">
+          <div class="card-tag">Term</div>
+          <div class="card-word" id="cardWord"></div>
+          <div class="tap-hint">tap to reveal</div>
+        </div>
+        <div class="card-face card-back">
+          <div class="card-word-small" id="cardWordBack"></div>
+          <div class="card-def" id="cardDef"></div>
+        </div>
+      </div>
+    </div>
+    <div class="rating-area" id="ratingArea">
+      <div class="rating-intro">How well did you know it? This moves the card to that pile.</div>
+      <div class="rating-btns">
+        <button class="rating-btn r-again" onclick="rate('again')">Again<span class="sub">back of session</span></button>
+        <button class="rating-btn r-hard" onclick="rate('hard')">Hard<span class="sub">review in 1 day</span></button>
+        <button class="rating-btn r-good" onclick="rate('good')">Good<span class="sub">review in 4 days</span></button>
+        <button class="rating-btn r-easy" onclick="rate('easy')">Easy<span class="sub">review in 10 days</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DONE -->
+<div class="screen" id="done">
+  <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:36px 18px">
+    <div class="done-card">
+      <div class="done-icon">🧠</div>
+      <h2>Session complete!</h2>
+      <p id="doneMsg"></p>
+      <div class="next-info" id="nextInfo"></div>
+      <button class="btn-primary" onclick="afterDone()">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// STORAGE
+// Card: { id, word, def, pile: 'new'|'hard'|'good'|'easy', nextReview: 'YYYY-MM-DD'|null }
+// Deck: { id, name, archived: bool, cards: [...] }
+// ─────────────────────────────────────────────────────────────────────────────
+const STORE = 'recall_v3';
+const INTERVALS = { hard: 1, good: 4, easy: 10 }; // fixed days per pile
+
+function dbLoad() { try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch { return {}; } }
+function dbSave(d) { localStorage.setItem(STORE, JSON.stringify(d)); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function addDays(n) { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0,10); }
+function escH(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escQ(s) { return String(s).replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function isDue(card) {
+  if (card.pile === 'new') return true; // new cards always due
+  return card.nextReview && card.nextReview <= todayStr();
+}
+
+function makeCard(word, def) {
+  return { id: word.trim().toLowerCase(), word: word.trim(), def: def.trim(), pile: 'new', nextReview: null };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────────────────────────────────
+let currentDeckId = null;
+let editingDeckId = null;
+let reviewQueue = [];
+let againQueue = []; // cards rated "again" in this session, reviewed after the main queue
+let currentIdx = 0;
+let inAgainPhase = false; // true when working through again cards
+let sessionReviewed = 0;
+let sessionStart = 0;
+let shuffleOn = false;
+let reviewReturnDeckId = null;
+let reviewContext = ''; // label shown during review
+let rowCount = 0;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODAL
+// ─────────────────────────────────────────────────────────────────────────────
+function showModal(title, msg, buttons) {
+  // buttons: [{label, cls, action}]
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalMsg').textContent = msg;
+  const btns = document.getElementById('modalBtns');
+  btns.innerHTML = '';
+  const cancel = document.createElement('button');
+  cancel.className = 'modal-cancel'; cancel.textContent = 'Cancel';
+  cancel.onclick = closeModal; btns.appendChild(cancel);
+  buttons.forEach(b => {
+    const el = document.createElement('button');
+    el.className = b.cls; el.textContent = b.label;
+    el.onclick = () => { closeModal(); b.action(); };
+    btns.appendChild(el);
+  });
+  document.getElementById('modalOverlay').style.display = 'flex';
+}
+function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SCREENS
+// ─────────────────────────────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goBack() {
+  const active = document.querySelector('.screen.active');
+  if (!active) return;
+  if (active.id === 'review' || active.id === 'done') {
+    if (reviewReturnDeckId) showDeckDashboard(reviewReturnDeckId);
+    else showAllDecks();
+    return;
+  }
+  if (active.id === 'setup') {
+    if (editingDeckId) { showDeckDashboard(editingDeckId); return; }
+    saveDraft();
+    showAllDecks(); return;
+  }
+  showAllDecks();
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ALL DECKS
+// ─────────────────────────────────────────────────────────────────────────────
+function showAllDecks() {
+  const decks = dbLoad();
+  const ids = Object.keys(decks);
+  document.getElementById('navBack').style.display = 'none';
+  document.getElementById('navDate').textContent = todayStr();
+
+  const totalDue = ids.filter(id => !decks[id].archived)
+    .reduce((acc, id) => acc + decks[id].cards.filter(isDue).length, 0);
+  const bar = document.getElementById('reviewAllBar');
+  if (totalDue > 0) {
+    document.getElementById('raCount').textContent = totalDue;
+    bar.style.display = 'flex';
+  } else { bar.style.display = 'none'; }
+
+  const grid = document.getElementById('deckGrid');
+  const empty = document.getElementById('emptyState');
+  if (!ids.length) { grid.innerHTML = ''; empty.style.display = 'block'; }
+  else {
+    empty.style.display = 'none';
+    grid.innerHTML = ids.map(id => {
+      const d = decks[id];
+      const due = d.archived ? [] : d.cards.filter(isDue);
+      const piles = { new:0, hard:0, good:0, easy:0 };
+      due.forEach(c => piles[c.pile || 'new']++);
+      const chips = d.archived
+        ? `<span class="pile-chip pc-archived">Archived</span>`
+        : due.length === 0
+          ? `<span class="pile-chip pc-done">✓ caught up</span>`
+          : ['new','hard','good','easy'].map(p => piles[p]
+              ? `<span class="pile-chip pc-${p}">${piles[p]} ${p}</span>` : '').join('');
+      return `<div class="deck-tile${d.archived?' archived':''}" onclick="showDeckDashboard('${id}')">
+        <button class="tile-menu" onclick="event.stopPropagation();tileMenu('${id}')" title="Options">⋯</button>
+        <div class="tile-name">${escH(d.name)}</div>
+        <div class="tile-total">${d.cards.length} card${d.cards.length!==1?'s':''}</div>
+        <div class="tile-piles">${chips}</div>
+      </div>`;
+    }).join('');
+  }
+  showScreen('decks');
+}
+
+function tileMenu(id) {
+  const d = dbLoad()[id]; if (!d) return;
+  showModal(d.name, 'What would you like to do?', [
+    { label: d.archived ? 'Unarchive' : 'Archive', cls: 'modal-confirm-ok',
+      action: () => { const db = dbLoad(); db[id].archived = !db[id].archived; dbSave(db); showAllDecks(); } },
+    { label: 'Delete', cls: 'modal-confirm-del',
+      action: () => {
+        showModal('Delete deck?', `"${d.name}" and all progress will be permanently removed.`, [
+          { label: 'Delete', cls: 'modal-confirm-del', action: () => { const db = dbLoad(); delete db[id]; dbSave(db); showAllDecks(); } }
+        ]);
+      }
+    }
+  ]);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PILE CARD LIST RENDERER
+// ─────────────────────────────────────────────────────────────────────────────
+const _pileCollapsed = { new:false, hard:false, good:false, easy:false };
+
+function togglePileCollapse(p) {
+  _pileCollapsed[p] = !_pileCollapsed[p];
+  const rows = document.getElementById('pile-rows-'+p);
+  const chevron = document.getElementById('pile-chevron-'+p);
+  if (rows) rows.style.display = _pileCollapsed[p] ? 'none' : 'block';
+  if (chevron) chevron.textContent = _pileCollapsed[p] ? '\u25b8' : '\u25be';
+}
+
+function renderPileCardLists(deck) {
+  const container = document.getElementById('pileCardLists');
+  const today = todayStr();
+  const PILE_ORDER = ['new','hard','good','easy'];
+  const PILE_LABELS = { new:'New', hard:'Hard', good:'Good', easy:'Easy' };
+  const PILE_COLORS = { new:'var(--purple)', hard:'var(--red)', good:'var(--yellow)', easy:'var(--green)' };
+
+  const pileDueDate = {};
+  deck.cards.forEach(c => {
+    const p = c.pile || 'new';
+    if (c.nextReview && (!pileDueDate[p] || c.nextReview < pileDueDate[p])) {
+      pileDueDate[p] = c.nextReview;
+    }
+  });
+
+  const sections = PILE_ORDER.map(p => {
+    const cards = deck.cards.filter(c => (c.pile||'new') === p);
+    if (!cards.length) return '';
+
+    const dueDate = pileDueDate[p];
+    let headerSub = '';
+    if (p === 'new') {
+      headerSub = cards.length + ' card' + (cards.length!==1?'s':'') + ' \u00b7 not yet reviewed';
+    } else if (dueDate) {
+      const days = Math.round((new Date(dueDate) - new Date(today)) / 86400000);
+      if (days < 0) headerSub = Math.abs(days) + 'd overdue \u00b7 review every ' + INTERVALS[p] + 'd';
+      else if (days === 0) headerSub = 'due today \u00b7 review every ' + INTERVALS[p] + 'd';
+      else headerSub = 'in ' + days + 'd \u00b7 review every ' + INTERVALS[p] + 'd';
+    } else {
+      headerSub = 'review every ' + INTERVALS[p] + 'd';
+    }
+
+    const collapsed = _pileCollapsed[p];
+    const rows = cards.map(c => {
+      const isCardDue = isDue(c);
+      const defTrunc = c.def.length > 40 ? c.def.slice(0,40) + '\u2026' : c.def;
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;border-bottom:1px solid var(--border);font-size:.83rem;">'
+        + '<span style="font-weight:500;' + (isCardDue?'':'color:var(--ink-soft)') + '">' + escH(c.word) + '</span>'
+        + '<span style="font-size:.72rem;color:var(--ink-ghost);white-space:nowrap;margin-left:12px;max-width:50%;overflow:hidden;text-overflow:ellipsis;">' + escH(defTrunc) + '</span>'
+        + '</div>';
+    }).join('');
+
+    return '<div style="background:var(--card);border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;">'
+      + '<div onclick="togglePileCollapse(\'' + p + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:' + (collapsed?'none':'1px solid var(--border)') + ';background:var(--paper);cursor:pointer;user-select:none;">'
+      + '<div style="display:flex;align-items:center;gap:8px;">'
+      + '<span id="pile-chevron-' + p + '" style="font-size:.7rem;color:var(--ink-ghost);width:10px;">' + (collapsed?'\u25b8':'\u25be') + '</span>'
+      + '<span style="width:8px;height:8px;border-radius:50%;background:' + PILE_COLORS[p] + ';display:inline-block;flex-shrink:0;"></span>'
+      + '<span style="font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:' + PILE_COLORS[p] + '">' + PILE_LABELS[p] + '</span>'
+      + '<span style="font-size:.72rem;font-weight:600;color:var(--ink-ghost);">' + cards.length + ' card' + (cards.length!==1?'s':'') + '</span>'
+      + '</div>'
+      + '<span style="font-size:.7rem;color:var(--ink-ghost);">' + headerSub + '</span>'
+      + '</div>'
+      + '<div id="pile-rows-' + p + '" style="display:' + (collapsed?'none':'block') + '">' + rows + '</div>'
+      + '</div>';
+  }).join('');
+
+  container.innerHTML = sections || '<div style="color:var(--ink-ghost);font-size:.85rem;padding:20px 0;">No cards yet.</div>';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SINGLE DECK DASHBOARD
+// ─────────────────────────────────────────────────────────────────────────────
+function showDeckDashboard(id) {
+  currentDeckId = id;
+  const decks = dbLoad();
+  const deck = decks[id];
+  if (!deck) { showAllDecks(); return; }
+
+  document.getElementById('navBack').style.display = '';
+  document.getElementById('navDate').textContent = todayStr();
+  document.getElementById('deckTitle').textContent = deck.name;
+  document.getElementById('deckSubtitle').textContent = `${deck.cards.length} card${deck.cards.length!==1?'s':''}`;
+
+  const archived = !!deck.archived;
+  document.getElementById('archivedBadge').style.display = archived ? 'inline-block' : 'none';
+  document.getElementById('archiveBtn').textContent = archived ? 'Unarchive' : 'Archive';
+
+  const counts = { new:0, hard:0, good:0, easy:0 };
+  const due    = { new:0, hard:0, good:0, easy:0 };
+  deck.cards.forEach(c => {
+    const p = c.pile || 'new';
+    counts[p]++;
+    if (isDue(c)) due[p]++;
+  });
+
+  ['new','hard','good','easy'].forEach(p => {
+    const cap = p.charAt(0).toUpperCase()+p.slice(1);
+    document.getElementById(`p${cap}Num`).textContent = counts[p];
+    const sub = document.getElementById(`p${cap}Sub`);
+    if (p === 'new') {
+      sub.textContent = counts[p] > 0 ? `${counts[p]} to start` : 'none left';
+    } else {
+      // Find the batch due date for this pile (earliest nextReview among cards in pile)
+      const pileCards = deck.cards.filter(c => (c.pile||'new') === p && c.nextReview);
+      const today = todayStr();
+      if (!pileCards.length) {
+        sub.textContent = `review every ${INTERVALS[p]}d`;
+      } else {
+        // All cards in a batch pile share the same nextReview — use the earliest
+        const nextDate = pileCards.map(c => c.nextReview).sort()[0];
+        if (nextDate <= today) {
+          sub.textContent = `overdue · review every ${INTERVALS[p]}d`;
+        } else {
+          const days = Math.round((new Date(nextDate) - new Date(today)) / 86400000);
+          sub.textContent = `in ${days}d · review every ${INTERVALS[p]}d`;
+        }
+      }
+    }
+  });
+
+  const totalDue = archived ? 0 : deck.cards.filter(isDue).length;
+  const startBtn = document.getElementById('startBtn');
+  const qe = document.getElementById('queueEmpty');
+  if (totalDue === 0 || archived) {
+    startBtn.disabled = true; qe.style.display = 'block';
+    qe.textContent = archived ? 'This deck is archived.' : '✓ Nothing due. Come back tomorrow.';
+  } else {
+    startBtn.disabled = false;
+    startBtn.textContent = `Review due (${totalDue}) →`;
+    qe.style.display = 'none';
+  }
+
+  // Render per-pile card lists
+  renderPileCardLists(deck);
+
+  showScreen('dashboard');
+}
+
+function toggleArchive() {
+  const db = dbLoad();
+  if (!db[currentDeckId]) return;
+  db[currentDeckId].archived = !db[currentDeckId].archived;
+  dbSave(db);
+  showDeckDashboard(currentDeckId);
+}
+
+function openDeleteDeck() {
+  const db = dbLoad();
+  const name = db[currentDeckId]?.name || 'this deck';
+  showModal('Delete deck?', `"${name}" and all progress will be permanently removed.`, [
+    { label: 'Delete', cls: 'modal-confirm-del', action: () => {
+      const d = dbLoad(); delete d[currentDeckId]; dbSave(d); showAllDecks();
+    }}
+  ]);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REVIEW
+// ─────────────────────────────────────────────────────────────────────────────
+function startReviewDue() {
+  const db = dbLoad();
+  const deck = db[currentDeckId]; if (!deck) return;
+  const cards = deck.cards.filter(isDue).map(c => ({...c, _deckId: currentDeckId}));
+  if (!cards.length) return;
+  reviewReturnDeckId = currentDeckId;
+  reviewContext = `${deck.name} · due cards`;
+  launchReview(cards);
+}
+
+function startReviewPile(pile) {
+  const db = dbLoad();
+  const deck = db[currentDeckId]; if (!deck) return;
+  let cards = deck.cards.filter(c => (c.pile || 'new') === pile).map(c => ({...c, _deckId: currentDeckId}));
+  if (!cards.length) return;
+  // due first
+  cards.sort((a,b) => {
+    const ad = isDue(a), bd = isDue(b);
+    if (ad && !bd) return -1; if (!ad && bd) return 1;
+    return (a.nextReview||'').localeCompare(b.nextReview||'');
+  });
+  reviewReturnDeckId = currentDeckId;
+  reviewContext = `${deck.name} · ${pile} pile (all ${cards.length})`;
+  launchReview(cards);
+}
+
+function startReviewAll() {
+  const db = dbLoad();
+  const all = [];
+  Object.keys(db).forEach(id => {
+    if (db[id].archived) return;
+    db[id].cards.filter(isDue).forEach(c => all.push({...c, _deckId: id}));
+  });
+  if (!all.length) return;
+  reviewReturnDeckId = null;
+  reviewContext = `All decks · due cards`;
+  launchReview(all);
+}
+
+function launchReview(cards) {
+  reviewQueue = shuffleOn ? [...cards].sort(() => Math.random()-.5) : cards;
+  againQueue = [];
+  currentIdx = 0;
+  inAgainPhase = false;
+  sessionReviewed = 0;
+  sessionStart = Date.now();
+  shuffleOn = false;
+  document.getElementById('shuffleBtn').classList.remove('on');
+  document.getElementById('navBack').style.display = '';
+  document.getElementById('reviewContext').textContent = reviewContext;
+  showCard();
+  showScreen('review');
+}
+
+function activeQueue() { return inAgainPhase ? againQueue : reviewQueue; }
+
+function showCard() {
+  const q = activeQueue();
+  const card = q[currentIdx];
+  document.getElementById('cardWord').textContent = card.word;
+  document.getElementById('cardWordBack').textContent = card.word;
+  document.getElementById('cardDef').textContent = card.def;
+  document.getElementById('flashcard').classList.remove('flipped');
+  document.getElementById('ratingArea').classList.remove('show');
+
+  const total = reviewQueue.length + againQueue.length;
+  const pos = (inAgainPhase ? reviewQueue.length : 0) + currentIdx + 1;
+  document.getElementById('progressFill').style.width = ((pos-1)/total*100) + '%';
+  document.getElementById('cardCount').textContent = `${pos} / ${total}`;
+
+  updateRatingLabels(card);
+}
+
+function updateRatingLabels(card) {
+  // For each pile, compute actual days until that pile's next batch review
+  // If the pile has an existing batch date in the future, new card joins at that date
+  // If pile is empty or overdue, use the fixed interval from today
+  const deckId = card._deckId || currentDeckId;
+  const db = dbLoad();
+  const deck = db[deckId];
+  const today = todayStr();
+
+  ['hard','good','easy'].forEach(p => {
+    const interval = INTERVALS[p];
+    let label = '';
+    if (deck) {
+      // Find current batch date for this pile
+      const pileDates = deck.cards
+        .filter(c => c.id !== card.id && (c.pile||'new') === p && c.nextReview && c.nextReview > today)
+        .map(c => c.nextReview).sort();
+      if (pileDates.length) {
+        const batchDate = pileDates[0];
+        const days = Math.round((new Date(batchDate) - new Date(today)) / 86400000);
+        label = days === 1 ? 'review in 1 day' : `review in ${days} days`;
+      } else {
+        label = interval === 1 ? 'review in 1 day' : `review in ${interval} days`;
+      }
+    } else {
+      label = interval === 1 ? 'review in 1 day' : `review in ${interval} days`;
+    }
+    const btn = document.querySelector(`.r-${p} .sub`);
+    if (btn) btn.textContent = label;
+  });
+}
+
+function flipCard() {
+  const fc = document.getElementById('flashcard');
+  if (!fc.classList.contains('flipped')) {
+    fc.classList.add('flipped');
+    document.getElementById('ratingArea').classList.add('show');
+  }
+}
+
+function rate(choice) {
+  const q = activeQueue();
+  const card = q[currentIdx];
+  const deckId = card._deckId || currentDeckId;
+  sessionReviewed++;
+
+  if (choice === 'again') {
+    // Push to again queue — do NOT save yet; will be rated again
+    againQueue.push({...card, _deckId: deckId});
+    advance();
+    return;
+  }
+
+  // Hard / Good / Easy — assign fixed interval and pile
+  const interval = INTERVALS[choice];
+  const nextReview = addDays(interval);
+  const updated = { pile: choice, nextReview };
+
+  // Save to storage — also update ALL other cards already in this pile (batch scheduling)
+  const db = dbLoad();
+  const deck = db[deckId];
+  if (deck) {
+    deck.cards.forEach(c => {
+      if (c.id === card.id) {
+        // This card: update pile + nextReview
+        Object.assign(c, updated);
+      } else if ((c.pile || 'new') === choice) {
+        // Same pile: move to same nextReview date (batch)
+        c.nextReview = nextReview;
+      }
+    });
+    dbSave(db);
+  }
+  Object.assign(card, updated);
+  advance();
+}
+
+function advance() {
+  currentIdx++;
+  const q = activeQueue();
+  if (currentIdx >= q.length) {
+    // Done with current phase
+    if (!inAgainPhase && againQueue.length > 0) {
+      // Switch to again phase
+      inAgainPhase = true;
+      currentIdx = 0;
+      showCard();
+    } else {
+      showDone();
+    }
+  } else {
+    showCard();
+  }
+}
+
+function toggleShuffle() {
+  shuffleOn = !shuffleOn;
+  document.getElementById('shuffleBtn').classList.toggle('on', shuffleOn);
+  const q = activeQueue();
+  const remaining = q.splice(currentIdx);
+  remaining.sort(() => Math.random() - .5);
+  q.push(...remaining);
+}
+
+function afterDone() {
+  if (reviewReturnDeckId) showDeckDashboard(reviewReturnDeckId);
+  else showAllDecks();
+}
+
+function showDone() {
+  const mins = Math.round((Date.now() - sessionStart) / 60000);
+  document.getElementById('doneMsg').textContent =
+    `You reviewed ${sessionReviewed} card${sessionReviewed!==1?'s':''} in ${Math.max(1,mins)} min.`;
+  const db = dbLoad();
+  const allFuture = [];
+  Object.keys(db).forEach(id => {
+    db[id].cards.filter(c => c.pile !== 'new' && c.nextReview && c.nextReview > todayStr())
+      .forEach(c => allFuture.push(c));
+  });
+  allFuture.sort((a,b) => a.nextReview.localeCompare(b.nextReview));
+  document.getElementById('nextInfo').textContent = allFuture.length
+    ? `Next review: ${allFuture[0].nextReview} — ${allFuture[0].word}`
+    : 'All caught up!';
+  document.getElementById('progressFill').style.width = '100%';
+  showScreen('done');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SETUP
+// ─────────────────────────────────────────────────────────────────────────────
+const DRAFT_KEY = 'recall_draft';
+function saveDraft() {
+  if (editingDeckId) return;
+  const name = document.getElementById('deckName').value;
+  const rows = [];
+  document.querySelectorAll('.entry-row').forEach(r => {
+    rows.push({ word: r.querySelector('.word-field').value, def: r.querySelector('.def-field').value });
+  });
+  localStorage.setItem(DRAFT_KEY, JSON.stringify({ name, rows }));
+}
+function clearDraft() { localStorage.removeItem(DRAFT_KEY); }
+function loadDraftData() { try { return JSON.parse(localStorage.getItem(DRAFT_KEY)); } catch { return null; } }
+
+function openNewDeck() {
+  editingDeckId = null;
+  document.getElementById('setupTitle').textContent = 'New deck';
+  document.getElementById('pasteArea').value = '';
+  document.getElementById('previewList').innerHTML = '';
+  document.getElementById('errMsg').classList.remove('show');
+  document.getElementById('entryRows').innerHTML = '';
+  rowCount = 0;
+
+  const draft = loadDraftData();
+  if (draft && (draft.name || (draft.rows && draft.rows.some(r => r.word || r.def)))) {
+    document.getElementById('deckName').value = draft.name || '';
+    const rowsToLoad = draft.rows && draft.rows.length ? draft.rows : [{}];
+    rowsToLoad.forEach(r => addRow(r.word||'', r.def||'', false));
+    const err = document.getElementById('errMsg');
+    err.style.cssText = 'background:var(--green-light);color:var(--green);display:block;';
+    err.textContent = 'Draft restored — your unsaved cards are back.';
+    setTimeout(() => { err.style.cssText = ''; err.classList.remove('show'); }, 3000);
+  } else {
+    document.getElementById('deckName').value = '';
+    addRow();
+  }
+
+  switchTab('manual');
+  document.getElementById('navBack').style.display = '';
+  showScreen('setup');
+  setTimeout(() => document.getElementById('deckName').focus(), 60);
+  document.getElementById('deckName').oninput = saveDraft;
+}
+
+function editDeck(id) {
+  const db = dbLoad(); const deck = db[id]; if (!deck) return;
+  editingDeckId = id;
+  document.getElementById('setupTitle').textContent = 'Edit deck';
+  document.getElementById('deckName').value = deck.name;
+  document.getElementById('pasteArea').value = '';
+  document.getElementById('previewList').innerHTML = '';
+  document.getElementById('errMsg').classList.remove('show');
+  document.getElementById('entryRows').innerHTML = '';
+  rowCount = 0;
+  deck.cards.forEach(c => addRow(c.word, c.def, false));
+  switchTab('manual');
+  document.getElementById('navBack').style.display = '';
+  showScreen('setup');
+}
+
+function saveDeck() {
+  const err = document.getElementById('errMsg');
+  err.classList.remove('show');
+  const name = document.getElementById('deckName').value.trim();
+  if (!name) { err.textContent = 'Give the deck a name.'; err.classList.add('show'); return; }
+
+  const isPaste = document.getElementById('panelPaste').classList.contains('active');
+  let newCards = [];
+  if (isPaste) {
+    newCards = parsePaste(document.getElementById('pasteArea').value);
+    if (!newCards.length) { err.textContent = 'No cards found. Check that you copied two columns.'; err.classList.add('show'); return; }
+  } else {
+    document.querySelectorAll('.entry-row').forEach(r => {
+      const w = r.querySelector('.word-field').value.trim();
+      const d = r.querySelector('.def-field').value.trim();
+      if (w && d) newCards.push({word:w, def:d});
+    });
+    if (!newCards.length) { err.textContent = 'Add at least one complete card.'; err.classList.add('show'); return; }
+  }
+
+  const db = dbLoad();
+  if (editingDeckId && db[editingDeckId]) {
+    // Merge: preserve SR data for existing cards, add new ones as 'new'
+    const existingMap = {};
+    db[editingDeckId].cards.forEach(c => existingMap[c.id] = c);
+    db[editingDeckId].name = name;
+    db[editingDeckId].cards = newCards.map(c => existingMap[c.word.trim().toLowerCase()] || makeCard(c.word, c.def));
+    dbSave(db);
+    showDeckDashboard(editingDeckId);
+  } else {
+    const id = uid();
+    db[id] = { id, name, archived: false, cards: newCards.map(c => makeCard(c.word, c.def)) };
+    dbSave(db);
+    clearDraft();
+    currentDeckId = id;
+    editingDeckId = null;
+    showDeckDashboard(id);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MANUAL ENTRY ROWS
+// ─────────────────────────────────────────────────────────────────────────────
+function addRow(wordVal, defVal, focusDef) {
+  rowCount++;
+  const id = rowCount;
+  const row = document.createElement('div');
+  row.className = 'entry-row'; row.id = `row-${id}`;
+  row.innerHTML = `
+    <input class="entry-field word-field" type="text" placeholder="Term" value="${escQ(wordVal||'')}">
+    <input class="entry-field def-field" type="text" placeholder="Definition" value="${escQ(defVal||'')}">
+    <button class="rm-btn" onclick="rmRow(${id})">×</button>`;
+  document.getElementById('entryRows').appendChild(row);
+  const wf = row.querySelector('.word-field'), df = row.querySelector('.def-field');
+  wf.addEventListener('keydown', e => { if (e.key==='Enter'){e.preventDefault(); df.focus();} });
+  df.addEventListener('keydown', e => { if (e.key==='Enter'){e.preventDefault(); addRow('','',false).focus();} });
+  wf.addEventListener('input', saveDraft);
+  df.addEventListener('input', saveDraft);
+  if (focusDef) df.focus();
+  return wf;
+}
+function rmRow(id) { const el=document.getElementById(`row-${id}`); if(el) el.remove(); }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PASTE
+// ─────────────────────────────────────────────────────────────────────────────
+function parsePaste(text) {
+  return text.trim().split('\n')
+    .map(l => { const p=l.split('\t'); return {word:(p[0]||'').trim(), def:(p[1]||'').trim()}; })
+    .filter(c => c.word && c.def);
+}
+function onPasteInput() {
+  const cards = parsePaste(document.getElementById('pasteArea').value);
+  const list = document.getElementById('previewList');
+  if (!cards.length) { list.innerHTML=''; return; }
+  const preview=cards.slice(0,4), rest=cards.length-preview.length;
+  list.innerHTML = preview.map(c =>
+    `<div class="preview-row"><span class="preview-term">${escH(c.word)}</span><span class="preview-arrow">→</span><span class="preview-def">${escH(c.def)}</span></div>`
+  ).join('') + (rest>0 ? `<div class="preview-more">+${rest} more</div>` : '');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TAB SWITCH
+// ─────────────────────────────────────────────────────────────────────────────
+function switchTab(tab) {
+  ['manual','paste'].forEach(t => {
+    const c = t[0].toUpperCase()+t.slice(1);
+    document.getElementById(`tab${c}`).classList.toggle('active', t===tab);
+    document.getElementById(`panel${c}`).classList.toggle('active', t===tab);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// KEYBOARD
+// ─────────────────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (!document.getElementById('review').classList.contains('active')) return;
+  if (e.key===' '||e.key==='Enter'){e.preventDefault(); flipCard();}
+  if (e.key==='1') rate('again');
+  if (e.key==='2') rate('hard');
+  if (e.key==='3') rate('good');
+  if (e.key==='4') rate('easy');
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────────────────────────────────────────
+document.getElementById('navDate').textContent = todayStr();
+const _db = dbLoad();
+if (Object.keys(_db).length) showAllDecks();
+else { rowCount=0; addRow(); showScreen('setup'); document.getElementById('navBack').style.display='none'; }
+</script>
+
+<!-- HELP OVERLAY -->
+<div id="helpOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;overflow-y:auto;padding:32px 16px;">
+  <div style="background:var(--card);border-radius:18px;max-width:560px;margin:0 auto;padding:36px 32px;position:relative;box-shadow:var(--shadow-lg);">
+    <button onclick="document.getElementById('helpOverlay').style.display='none'" style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:1.2rem;color:var(--ink-ghost);cursor:pointer;line-height:1;">✕</button>
+    <h2 style="font-family:'DM Serif Display',serif;font-size:1.5rem;margin-bottom:20px;">How Recall works</h2>
+
+    <div style="display:flex;flex-direction:column;gap:20px;font-size:.88rem;line-height:1.7;color:var(--ink-soft);">
+
+      <div>
+        <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);margin-bottom:6px;">The idea</div>
+        Recall uses <strong style="color:var(--ink)">spaced repetition</strong> — a technique backed by memory research. Instead of reviewing everything every day, you review each group of cards right before you'd start forgetting them. The harder a card is, the more often you see it.
+      </div>
+
+      <div>
+        <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);margin-bottom:6px;">The 4 piles</div>
+        Every card lives in one of four piles. When you review a card, you rate how well you knew it — and the card moves to that pile. Each pile has a fixed review schedule:
+        <div style="margin-top:10px;display:flex;flex-direction:column;gap:6px;">
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#f3f0ff;border-radius:8px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:var(--purple);flex-shrink:0;"></span>
+            <strong style="color:var(--purple);min-width:44px;">New</strong>
+            <span>Cards you haven't reviewed yet. Always show up in your daily queue.</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--red-light);border-radius:8px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:var(--red);flex-shrink:0;"></span>
+            <strong style="color:var(--red);min-width:44px;">Hard</strong>
+            <span>You barely remembered it. Comes back in <strong style="color:var(--ink)">1 day</strong>.</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--yellow-light);border-radius:8px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:var(--yellow);flex-shrink:0;"></span>
+            <strong style="color:var(--yellow);min-width:44px;">Good</strong>
+            <span>Solid recall. Comes back in <strong style="color:var(--ink)">4 days</strong>.</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--green-light);border-radius:8px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;"></span>
+            <strong style="color:var(--green);min-width:44px;">Easy</strong>
+            <span>You knew it instantly. Comes back in <strong style="color:var(--ink)">10 days</strong>.</span>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);margin-bottom:6px;">Batch scheduling</div>
+        Each pile reviews as a <strong style="color:var(--ink)">batch</strong> — all Hard cards come back together, all Good cards together, all Easy cards together. When you rate a new card, it joins the existing batch for that pile (so it reviews on the same day as other cards already there, not separately). This keeps your review sessions predictable and manageable.
+      </div>
+
+      <div>
+        <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);margin-bottom:6px;">Again</div>
+        If you couldn't recall a card at all, hit <strong style="color:var(--ink)">Again</strong>. The card goes to the back of your current session so you see it again before finishing — but it doesn't get permanently scheduled until you give it a real rating (Hard/Good/Easy).
+      </div>
+
+      <div>
+        <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);margin-bottom:6px;">Daily habit</div>
+        Check the <strong style="color:var(--ink)">Review all due</strong> button on the home screen each day. It pulls every card that's due across all your decks into one session. Consistent daily reviews — even just 5 minutes — are far more effective than long cramming sessions.
+      </div>
+
+      <div>
+        <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);margin-bottom:6px;">Adding cards</div>
+        Create a deck by typing cards manually (term + definition, press ↵ to move between fields) or paste directly from Google Sheets (column A = term, column B = definition — select both, copy, paste).
+      </div>
+
+      <div>
+        <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);margin-bottom:6px;">Archiving</div>
+        When you finish a class or topic, archive the deck. Archived decks are hidden from your daily review queue but all your progress is saved — you can unarchive anytime.
+      </div>
+
+    </div>
+
+    <button onclick="document.getElementById('helpOverlay').style.display='none'" style="margin-top:28px;width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;">Got it</button>
+  </div>
+</div>
+
+<script>
+function showHelp() { document.getElementById('helpOverlay').style.display='block'; window.scrollTo(0,0); }
+</script>
+</body>
+</html>
